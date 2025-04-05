@@ -1,0 +1,32 @@
+{
+  "documentPanel": {
+    "uploadDocuments": {
+      "button": "문서 업로드",
+      "tooltip": "문서를 업로드하여 RAG 시스템에 추가",
+      "title": "문서 업로드",
+      "description": "파일을 업로드하거나 텍스트를 직접 입력하여 RAG 시스템에 추가할 수 있습니다.",
+      "fileTab": "파일 업로드",
+      "textTab": "텍스트 입력",
+      "textPlaceholder": "여기에 텍스트를 입력하세요...",
+      "textUpload": "텍스트 업로드",
+      "textEmpty": "텍스트를 입력해주세요.",
+      "textUploading": "텍스트를 업로드하는 중...",
+      "textSuccess": "텍스트가 성공적으로 업로드되었습니다.",
+      "textError": "텍스트 업로드에 실패했습니다.",
+      "batch": {
+        "uploading": "파일을 업로드하는 중...",
+        "success": "모든 파일이 성공적으로 업로드되었습니다.",
+        "error": "일부 파일 업로드에 실패했습니다."
+      },
+      "single": {
+        "uploading": "{{name}} 파일을 업로드하는 중... ({{percent}}%)"
+      },
+      "fileUploader": {
+        "fileRejected": "{{name}} 파일이 거부되었습니다.",
+        "unsupportedType": "지원하지 않는 파일 형식입니다.",
+        "duplicateFile": "이미 존재하는 파일입니다."
+      },
+      "generalError": "업로드 중 오류가 발생했습니다: {{error}}"
+    }
+  }
+} 

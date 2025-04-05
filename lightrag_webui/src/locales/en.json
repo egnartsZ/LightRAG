@@ -58,6 +58,14 @@
       "tooltip": "Upload documents",
       "title": "Upload Documents",
       "description": "Drag and drop your documents here or click to browse.",
+      "fileTab": "File Upload",
+      "textTab": "Text Input",
+      "textPlaceholder": "Enter your text here...",
+      "textUpload": "Upload Text",
+      "textEmpty": "Please enter text.",
+      "textUploading": "Uploading text...",
+      "textSuccess": "Text uploaded successfully.",
+      "textError": "Failed to upload text.",
       "single": {
         "uploading": "Uploading {{name}}: {{percent}}%",
         "success": "Upload Success:\n{{name}} uploaded successfully",
@@ -85,7 +93,7 @@
       }
     },
     "documentManager": {
-      "title": "Document Management",
+      "title": "Document Mana",
       "scanButton": "Scan",
       "scanTooltip": "Scan documents in input folder",
       "pipelineStatusButton": "Pipeline Status",

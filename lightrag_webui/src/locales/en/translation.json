@@ -1,0 +1,32 @@
+{
+  "documentPanel": {
+    "uploadDocuments": {
+      "button": "Upload Documents",
+      "tooltip": "Upload documents to add to the RAG system",
+      "title": "Upload Documents",
+      "description": "Upload files or directly input text to add to the RAG system.",
+      "fileTab": "File Upload",
+      "textTab": "Text Input",
+      "textPlaceholder": "Enter your text here...",
+      "textUpload": "Upload Text",
+      "textEmpty": "Please enter text.",
+      "textUploading": "Uploading text...",
+      "textSuccess": "Text uploaded successfully.",
+      "textError": "Failed to upload text.",
+      "batch": {
+        "uploading": "Uploading files...",
+        "success": "All files uploaded successfully.",
+        "error": "Some files failed to upload."
+      },
+      "single": {
+        "uploading": "Uploading {{name}}... ({{percent}}%)"
+      },
+      "fileUploader": {
+        "fileRejected": "{{name}} was rejected.",
+        "unsupportedType": "Unsupported file type.",
+        "duplicateFile": "File already exists."
+      },
+      "generalError": "Error during upload: {{error}}"
+    }
+  }
+} 

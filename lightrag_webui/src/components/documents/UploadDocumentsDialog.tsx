@@ -7,12 +7,15 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
+  DialogFooter
 } from '@/components/ui/Dialog'
 import FileUploader from '@/components/ui/FileUploader'
 import { toast } from 'sonner'
 import { errorMessage } from '@/lib/utils'
-import { uploadDocument } from '@/api/lightrag'
+import { uploadDocument, insertText } from '@/api/lightrag'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
+import { Textarea } from '@/components/ui/Textarea'
 
 import { UploadIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +30,7 @@ export default function UploadDocumentsDialog({ onDocumentsUploaded }: UploadDoc
   const [isUploading, setIsUploading] = useState(false)
   const [progresses, setProgresses] = useState<Record<string, number>>({})
   const [fileErrors, setFileErrors] = useState<Record<string, string>>({})
+  const [text, setText] = useState('')
 
   const handleRejectedFiles = useCallback(
     (rejectedFiles: FileRejection[]) => {
@@ -170,6 +174,36 @@ export default function UploadDocumentsDialog({ onDocumentsUploaded }: UploadDoc
     [setIsUploading, setProgresses, setFileErrors, t, onDocumentsUploaded]
   )
 
+  const handleTextUpload = useCallback(async () => {
+    if (!text.trim()) {
+      toast.error(t('documentPanel.uploadDocuments.textEmpty'))
+      return
+    }
+
+    setIsUploading(true)
+    const toastId = toast.loading(t('documentPanel.uploadDocuments.textUploading'))
+
+    try {
+      const result = await insertText(text)
+      
+      if (result.status === 'success') {
+        toast.success(t('documentPanel.uploadDocuments.textSuccess'), { id: toastId })
+        setText('')
+        setOpen(false)
+        if (onDocumentsUploaded) {
+          await onDocumentsUploaded()
+        }
+      } else {
+        toast.error(t('documentPanel.uploadDocuments.textError'), { id: toastId })
+      }
+    } catch (err) {
+      console.error('Error uploading text:', err)
+      toast.error(t('documentPanel.uploadDocuments.generalError', { error: errorMessage(err) }), { id: toastId })
+    } finally {
+      setIsUploading(false)
+    }
+  }, [text, setIsUploading, t, onDocumentsUploaded])
+
   return (
     <Dialog
       open={open}
@@ -180,6 +214,7 @@ export default function UploadDocumentsDialog({ onDocumentsUploaded }: UploadDoc
         if (!open) {
           setProgresses({})
           setFileErrors({})
+          setText('')
         }
         setOpen(open)
       }}
@@ -196,16 +231,45 @@ export default function UploadDocumentsDialog({ onDocumentsUploaded }: UploadDoc
             {t('documentPanel.uploadDocuments.description')}
           </DialogDescription>
         </DialogHeader>
-        <FileUploader
-          maxFileCount={Infinity}
-          maxSize={200 * 1024 * 1024}
-          description={t('documentPanel.uploadDocuments.fileTypes')}
-          onUpload={handleDocumentsUpload}
-          onReject={handleRejectedFiles}
-          progresses={progresses}
-          fileErrors={fileErrors}
-          disabled={isUploading}
-        />
+        
+        <Tabs defaultValue="file">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="file">{t('documentPanel.uploadDocuments.fileTab')}</TabsTrigger>
+            <TabsTrigger value="text">{t('documentPanel.uploadDocuments.textTab')}</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="file">
+            <FileUploader
+              maxFileCount={Infinity}
+              maxSize={200 * 1024 * 1024}
+              description={t('documentPanel.uploadDocuments.fileTypes')}
+              onUpload={handleDocumentsUpload}
+              onReject={handleRejectedFiles}
+              progresses={progresses}
+              fileErrors={fileErrors}
+              disabled={isUploading}
+            />
+          </TabsContent>
+          
+          <TabsContent value="text" className="flex flex-col gap-4">
+            <Textarea
+              placeholder={t('documentPanel.uploadDocuments.textPlaceholder')}
+              value={text}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)}
+              className="min-h-[200px]"
+              disabled={isUploading}
+            />
+            <DialogFooter>
+              <Button
+                variant="default"
+                onClick={handleTextUpload}
+                disabled={isUploading || !text.trim()}
+              >
+                {t('documentPanel.uploadDocuments.textUpload')}
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   )

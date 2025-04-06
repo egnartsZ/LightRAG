@@ -13,6 +13,14 @@ const GraphLabels = () => {
   const label = useSettingsStore.use.queryLabel()
   const allDatabaseLabels = useGraphStore.use.allDatabaseLabels()
 
+  // Initialize with '*' label if empty
+  useEffect(() => {
+    if (!label) {
+      console.log('No label selected, setting default label "*"');
+      useSettingsStore.getState().setQueryLabel('*');
+    }
+  }, [label]);
+
   // Remove initial label fetch effect as it's now handled by fetchGraph based on lastSuccessfulQueryLabel
 
   const getSearchEngine = useCallback(() => {

@@ -80,11 +80,12 @@ const fetchGraph = async (label: string, maxDepth: number, maxNodes: number) => 
   let rawData: any = null;
 
   // Check if we need to fetch all database labels first
-  const lastSuccessfulQueryLabel = useGraphStore.getState().lastSuccessfulQueryLabel;
-  if (!lastSuccessfulQueryLabel) {
-    console.log('Last successful queryLabel is empty');
+  const state = useGraphStore.getState();
+  if (!state.labelsFetchAttempted) {
+    console.log('Labels not fetched yet, fetching all database labels...');
     try {
-      await useGraphStore.getState().fetchAllDatabaseLabels();
+      await state.fetchAllDatabaseLabels();
+      state.setLabelsFetchAttempted(true);
     } catch (e) {
       console.error('Failed to fetch all database labels:', e);
       // Continue with graph fetch even if labels fetch fails

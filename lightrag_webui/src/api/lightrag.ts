@@ -471,3 +471,26 @@ export const loginToServer = async (username: string, password: string): Promise
 
   return response.data;
 }
+
+// Prompts API
+export const getPrompts = async (): Promise<Record<string, string>> => {
+  const response = await axiosInstance.get('/prompts')
+  return response.data
+}
+
+export const updatePrompt = async (
+  promptName: string, 
+  content: string | string[],
+  is_json: boolean = false
+): Promise<string | string[]> => {
+  const response = await axiosInstance.put(`/prompts/${promptName}`, {
+    content: content,
+    is_json
+  })
+  return response.data
+}
+
+export const deleteDocument = async (docId: string): Promise<DocActionResponse> => {
+  const response = await axiosInstance.delete(`/documents/${docId}`)
+  return response.data
+}

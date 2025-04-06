@@ -325,6 +325,30 @@ class PipelineStatusResponse(BaseModel):
         extra = "allow"  # Allow additional fields from the pipeline status
 
 
+class DeleteDocumentResponse(BaseModel):
+    """Response model for document deletion operation
+
+    Attributes:
+        status: Status of the deletion operation
+        message: Optional message with additional details
+    """
+
+    status: Literal["success", "failure"] = Field(
+        description="Status of the deletion operation"
+    )
+    message: Optional[str] = Field(
+        default=None, description="Additional details about the deletion operation"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "success",
+                "message": "Document deleted successfully",
+            }
+        }
+
+
 class DocumentManager:
     def __init__(
         self,
@@ -1320,5 +1344,31 @@ def create_document_routes(
             logger.error(f"Error clearing cache: {str(e)}")
             logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=str(e))
+
+    @router.delete("/{doc_id}", response_model=DeleteDocumentResponse)
+    async def delete_document(
+        doc_id: str,
+    ) -> DeleteDocumentResponse:
+        """Delete a document by its ID.
+
+        Args:
+            doc_id: The ID of the document to delete
+
+        Returns:
+            DeleteDocumentResponse: Response indicating success or failure of deletion
+        """
+        try:
+            await rag.adelete_by_doc_id(doc_id)
+            return DeleteDocumentResponse(
+                status="success",
+                message=f"Document {doc_id} deleted successfully"
+            )
+        except Exception as e:
+            logger.error(f"Error deleting document {doc_id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            return DeleteDocumentResponse(
+                status="failure",
+                message=f"Failed to delete document: {str(e)}"
+            )
 
     return router

@@ -1092,7 +1092,7 @@ class LightRAG:
                 llm_response_cache=self.llm_response_cache,
             )
         except Exception as e:
-            logger.error("Failed to extract entities and relationships")
+            logger.error("Failed to extract entities and relationships", exc_info=e)
             raise e
 
     async def _insert_done(

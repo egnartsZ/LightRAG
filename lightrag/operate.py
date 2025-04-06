@@ -36,12 +36,15 @@ from .base import (
 from .prompt import GRAPH_FIELD_SEP, PROMPTS
 import time
 from dotenv import load_dotenv
+from .prompt_manager import PromptManager
 
 # use the .env that is inside the current folder
 # allows to use different .env file for each lightrag instance
 # the OS environment variables take precedence over the .env file
 load_dotenv(dotenv_path=".env", override=False)
 
+# 기존 PROMPTS 딕셔너리 대신 PromptManager 인스턴스를 사용
+prompt_manager = PromptManager()
 
 def chunking_by_token_size(
     content: str,
@@ -141,11 +144,13 @@ async def _handle_single_entity_extraction(
     chunk_key: str,
     file_path: str = "unknown_source",
 ):
-    if len(record_attributes) < 4 or record_attributes[0] != '"entity"':
+    enclosing = '\''
+    if len(record_attributes) < 4 or record_attributes[0] != f'{enclosing}entity{enclosing}':
         return None
 
     # Clean and validate entity name
-    entity_name = clean_str(record_attributes[1]).strip('"')
+    entity_name = clean_str(record_attributes[1]).strip(enclosing)
+    logger.debug(f"entity_name: {entity_name}")
     if not entity_name.strip():
         logger.warning(
             f"Entity extraction error: empty entity name in: {record_attributes}"
@@ -153,7 +158,8 @@ async def _handle_single_entity_extraction(
         return None
 
     # Clean and validate entity type
-    entity_type = clean_str(record_attributes[2]).strip('"')
+    entity_type = clean_str(record_attributes[2]).strip(enclosing)
+    logger.debug(f"entity_type: {entity_type}")
     if not entity_type.strip() or entity_type.startswith('("'):
         logger.warning(
             f"Entity extraction error: invalid entity type in: {record_attributes}"
@@ -161,7 +167,8 @@ async def _handle_single_entity_extraction(
         return None
 
     # Clean and validate description
-    entity_description = clean_str(record_attributes[3]).strip('"')
+    entity_description = clean_str(record_attributes[3]).strip(enclosing)
+    logger.debug(f"entity_description: {entity_description}")
     if not entity_description.strip():
         logger.warning(
             f"Entity extraction error: empty description for entity '{entity_name}' of type '{entity_type}'"
@@ -182,16 +189,17 @@ async def _handle_single_relationship_extraction(
     chunk_key: str,
     file_path: str = "unknown_source",
 ):
-    if len(record_attributes) < 5 or record_attributes[0] != '"relationship"':
+    enclosing = '\''
+    if len(record_attributes) < 5 or record_attributes[0] != f'{enclosing}relationship{enclosing}':
         return None
     # add this record as edge
-    source = clean_str(record_attributes[1]).strip('"')
-    target = clean_str(record_attributes[2]).strip('"')
-    edge_description = clean_str(record_attributes[3]).strip('"')
-    edge_keywords = clean_str(record_attributes[4]).strip('"')
+    source = clean_str(record_attributes[1]).strip(enclosing)
+    target = clean_str(record_attributes[2]).strip(enclosing)
+    edge_description = clean_str(record_attributes[3]).strip(enclosing)
+    edge_keywords = clean_str(record_attributes[4]).strip(enclosing)
     edge_source_id = chunk_key
     weight = (
-        float(record_attributes[-1].strip('"'))
+        float(record_attributes[-1].strip(enclosing))
         if is_float_regex(record_attributes[-1])
         else 1.0
     )
@@ -401,19 +409,23 @@ async def extract_entities(
 
     ordered_chunks = list(chunks.items())
     # add language and example number params to prompt
-    language = global_config["addon_params"].get(
-        "language", PROMPTS["DEFAULT_LANGUAGE"]
-    )
-    entity_types = global_config["addon_params"].get(
-        "entity_types", PROMPTS["DEFAULT_ENTITY_TYPES"]
-    )
+    language = global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"])
+    entity_types = global_config["addon_params"].get("entity_types", PROMPTS["DEFAULT_ENTITY_TYPES"])
     example_number = global_config["addon_params"].get("example_number", None)
-    if example_number and example_number < len(PROMPTS["entity_extraction_examples"]):
-        examples = "\n".join(
-            PROMPTS["entity_extraction_examples"][: int(example_number)]
-        )
+    
+    # 프롬프트 매니저에서 예제 가져오기
+    examples = prompt_manager.get_prompt("entity_extraction_examples")
+    if not examples:
+        logger.error("entity_extraction_examples not found in prompt manager")
+        examples = ""
+    elif isinstance(examples, list):
+        if example_number:
+            examples = "\n".join(examples[:int(example_number)])
+        else:
+            examples = "\n".join(examples)
     else:
-        examples = "\n".join(PROMPTS["entity_extraction_examples"])
+        logger.error("entity_extraction_examples is not in the expected format")
+        examples = ""
 
     example_context_base = dict(
         tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],
@@ -423,20 +435,45 @@ async def extract_entities(
         language=language,
     )
     # add example's format
-    examples = examples.format(**example_context_base)
+    if examples:
+        examples = examples.format(**example_context_base)
 
-    entity_extract_prompt = PROMPTS["entity_extraction"]
+    # 프롬프트 매니저에서 프롬프트 가져오기
+    entity_extract_prompt = prompt_manager.get_prompt("entity_extraction")
+    if entity_extract_prompt is None:
+        logger.error("entity_extraction prompt not found")
+        raise ValueError("entity_extraction prompt not found")
+    # 딕셔너리가 아닌 경우 그대로 사용
+    if isinstance(entity_extract_prompt, dict):
+        entity_extract_prompt = entity_extract_prompt["prompt"]
+
     context_base = dict(
         tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],
         record_delimiter=PROMPTS["DEFAULT_RECORD_DELIMITER"],
         completion_delimiter=PROMPTS["DEFAULT_COMPLETION_DELIMITER"],
-        entity_types=",".join(entity_types),
+        entity_types=", ".join(entity_types),
         examples=examples,
         language=language,
     )
 
-    continue_prompt = PROMPTS["entity_continue_extraction"].format(**context_base)
-    if_loop_prompt = PROMPTS["entity_if_loop_extraction"]
+    # 프롬프트 매니저에서 continue와 if_loop 프롬프트 가져오기
+    continue_prompt_text = prompt_manager.get_prompt("entity_continue_extraction")
+    if continue_prompt_text is None:
+        logger.error("entity_continue_extraction prompt not found")
+        raise ValueError("entity_continue_extraction prompt not found")
+    # 딕셔너리가 아닌 경우 그대로 사용
+    if isinstance(continue_prompt_text, dict):
+        continue_prompt_text = continue_prompt_text["prompt"]
+    continue_prompt = continue_prompt_text.format(**context_base)
+
+    if_loop_prompt_text = prompt_manager.get_prompt("entity_if_loop_extraction")
+    if if_loop_prompt_text is None:
+        logger.error("entity_if_loop_extraction prompt not found")
+        raise ValueError("entity_if_loop_extraction prompt not found")
+    # 딕셔너리가 아닌 경우 그대로 사용
+    if isinstance(if_loop_prompt_text, dict):
+        if_loop_prompt_text = if_loop_prompt_text["prompt"]
+    if_loop_prompt = if_loop_prompt_text
 
     processed_chunks = 0
     total_chunks = len(ordered_chunks)
@@ -445,7 +482,6 @@ async def extract_entities(
 
     # Get lock manager from shared storage
     from .kg.shared_storage import get_graph_db_lock
-
     graph_db_lock = get_graph_db_lock(enable_logging=False)
 
     async def _user_llm_func_with_cache(
@@ -508,6 +544,7 @@ async def extract_entities(
         maybe_nodes = defaultdict(list)
         maybe_edges = defaultdict(list)
 
+        logger.debug(f"result: {result}")
         records = split_string_by_multi_markers(
             result,
             [context_base["record_delimiter"], context_base["completion_delimiter"]],
@@ -515,16 +552,18 @@ async def extract_entities(
 
         for record in records:
             record = re.search(r"\((.*)\)", record)
+            logger.debug(f"record: {record}")
             if record is None:
                 continue
             record = record.group(1)
             record_attributes = split_string_by_multi_markers(
                 record, [context_base["tuple_delimiter"]]
             )
-
+            logger.debug(f"record_attributes: {record_attributes}")
             if_entities = await _handle_single_entity_extraction(
                 record_attributes, chunk_key, file_path
             )
+            logger.debug(f"if_entities: {if_entities}")
             if if_entities is not None:
                 maybe_nodes[if_entities["entity_name"]].append(if_entities)
                 continue
@@ -532,6 +571,7 @@ async def extract_entities(
             if_relation = await _handle_single_relationship_extraction(
                 record_attributes, chunk_key, file_path
             )
+            logger.debug(f"if_relation: {if_relation}")
             if if_relation is not None:
                 maybe_edges[(if_relation["src_id"], if_relation["tgt_id"])].append(
                     if_relation
@@ -552,10 +592,10 @@ async def extract_entities(
         # Get file path from chunk data or use default
         file_path = chunk_dp.get("file_path", "unknown_source")
 
-        # Get initial extraction
+        # Get initial extraction using prompt manager
         hint_prompt = entity_extract_prompt.format(
-            **context_base, input_text="{input_text}"
-        ).format(**context_base, input_text=content)
+            **context_base, input_text=content
+        )
 
         final_result = await _user_llm_func_with_cache(hint_prompt)
         history = pack_user_ass_to_openai_messages(hint_prompt, final_result)

@@ -16,12 +16,12 @@ import EmptyCard from '@/components/ui/EmptyCard'
 import UploadDocumentsDialog from '@/components/documents/UploadDocumentsDialog'
 import ClearDocumentsDialog from '@/components/documents/ClearDocumentsDialog'
 
-import { getDocuments, scanNewDocuments, DocsStatusesResponse, DocStatus, DocStatusResponse } from '@/api/lightrag'
+import { getDocuments, scanNewDocuments, deleteDocument, DocsStatusesResponse, DocStatus, DocStatusResponse } from '@/api/lightrag'
 import { errorMessage } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useBackendState } from '@/stores/state'
 
-import { RefreshCwIcon, ActivityIcon, ArrowUpIcon, ArrowDownIcon, FilterIcon } from 'lucide-react'
+import { RefreshCwIcon, ActivityIcon, ArrowUpIcon, ArrowDownIcon, FilterIcon, Trash2Icon } from 'lucide-react'
 import PipelineStatusDialog from '@/components/documents/PipelineStatusDialog'
 
 type StatusFilter = DocStatus | 'all';
@@ -404,6 +404,22 @@ export default function DocumentManager() {
     // This effect ensures the component re-renders when sort state changes
   }, [sortField, sortDirection]);
 
+  const handleDeleteDocument = async (docId: string) => {
+    try {
+      if (window.confirm(t('documentPanel.documentManager.deleteConfirm'))) {
+        const response = await deleteDocument(docId)
+        if (response.status === 'success') {
+          toast.success(t('documentPanel.documentManager.deleteSuccess'))
+          await fetchDocuments()
+        } else {
+          toast.error(t('documentPanel.documentManager.deleteFailed', { error: response.message }))
+        }
+      }
+    } catch (err) {
+      toast.error(t('documentPanel.documentManager.errors.deleteFailed', { error: errorMessage(err) }))
+    }
+  }
+
   return (
     <Card className="!rounded-none !overflow-hidden flex flex-col h-full min-h-0">
       <CardHeader className="py-2 px-6">
@@ -582,6 +598,9 @@ export default function DocumentManager() {
                             )}
                           </div>
                         </TableHead>
+                        <TableHead>
+                          {t('documentPanel.documentManager.columns.delete')}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="text-sm overflow-auto">
@@ -644,6 +663,17 @@ export default function DocumentManager() {
                             </TableCell>
                             <TableCell className="truncate">
                               {new Date(doc.updated_at).toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/30"
+                                tooltip={t('documentPanel.documentManager.deleteTooltip')}
+                              >
+                                <Trash2Icon className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         )))

@@ -1,0 +1,52 @@
+{
+  "settings": {
+    "language": "언어",
+    "theme": "테마",
+    "light": "라이트",
+    "dark": "다크",
+    "system": "시스템"
+  },
+  "header": {
+    "documents": "문서",
+    "knowledgeGraph": "지식 그래프",
+    "retrieval": "검색",
+    "api": "API",
+    "prompts": "프롬프트",
+    "projectRepository": "프로젝트 저장소",
+    "logout": "로그아웃",
+    "themeToggle": {
+      "switchToLight": "라이트 테마로 전환",
+      "switchToDark": "다크 테마로 전환"
+    }
+  },
+  "prompts": {
+    "title": "프롬프트",
+    "description": "LLM 지침 프롬프트 관리",
+    "entityExtraction": {
+      "title": "엔티티 추출",
+      "description": "텍스트에서 엔티티를 추출하기 위한 지침"
+    },
+    "entityExtractionExamples": {
+      "title": "엔티티 추출 예제",
+      "description": "엔티티 추출을 위한 예제 데이터"
+    },
+    "entitySummarization": {
+      "title": "엔티티 설명 요약",
+      "description": "엔티티 설명을 요약하기 위한 지침"
+    },
+    "entityContinueExtraction": {
+      "title": "엔티티 추가 추출",
+      "description": "누락된 엔티티를 추가로 추출하기 위한 지침"
+    },
+    "actions": {
+      "edit": "수정",
+      "save": "저장",
+      "cancel": "취소"
+    },
+    "messages": {
+      "loadError": "프롬프트를 불러오는데 실패했습니다",
+      "saveSuccess": "프롬프트가 성공적으로 저장되었습니다",
+      "saveError": "프롬프트 저장에 실패했습니다"
+    }
+  }
+} 
